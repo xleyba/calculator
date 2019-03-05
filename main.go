@@ -19,6 +19,7 @@ type Configuration struct {
 	Port string
 }
 
+
 // Convert String to int
 func StrToInt(str string) (int, error) {
 	nonFractionalPart := strings.Split(str, ".")
@@ -47,6 +48,14 @@ func factorialRecursive(x *big.Int) *big.Int {
 // Return default message for root routing
 func Index(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+}
+
+// Return echo message
+func echoHandler(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	message := params["message"]
+
+	fmt.Fprintf(w, "%s", message)
 }
 
 // Handle iterative path and calls iterative calculation
@@ -95,11 +104,15 @@ func factorialRecursiveHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-	port := ":9096"
+	port := ":9596"
 	log.Println("Starting server")
 
 	// Start to read conf file
+	log.Println("=============================================")
+	log.Println("         Configuration checking")
+	log.Println("=============================================")
 	file, err := os.Open("conf.json")
+
 
 	if (err != nil) {
 		log.Println("No conf file, using port 9596 by default")
@@ -113,15 +126,27 @@ func main() {
 			fmt.Println("error:", err)
 			log.Fatal()
 		} else {
-			fmt.Println(configuration.Port)
-			port = configuration.Port
+
+			// Check port parameter
+			if len(configuration.Port) == 0 {
+				log.Println("-- No port inf config file, using: ", port)
+			} else {
+				port = configuration.Port
+				log.Println("-- Using port: ", port)
+			}
+
 		}
 	}
 
+	log.Println("=============================================")
+
 	router := mux.NewRouter() //.StrictSlash(true)
 	router.HandleFunc("/", Index).Methods("GET")
+	router.HandleFunc("/echo/{message}", echoHandler).Methods("GET")
 	router.HandleFunc("/factorialIterative/{number}", factorialIterativeHandler).Methods("GET")
 	router.HandleFunc("/factorialRecursive/{number}", factorialRecursiveHandler).Methods("GET")
+
+	log.Println("Running server....")
 
 	log.Fatal(http.ListenAndServe(port, router))
 
