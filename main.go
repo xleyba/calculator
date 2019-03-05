@@ -1,18 +1,23 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"html"
 	"log"
 	"math/big"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
 
-// Define a port number
-var port = ":9096"
+
+// Configuration
+type Configuration struct {
+	Port string
+}
 
 // Convert String to int
 func StrToInt(str string) (int, error) {
@@ -90,7 +95,28 @@ func factorialRecursiveHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
+	port := ":9096"
 	log.Println("Starting server")
+
+	// Start to read conf file
+	file, err := os.Open("conf.json")
+
+	if (err != nil) {
+		log.Println("No conf file, using port 9596 by default")
+	} else {
+		defer file.Close()
+		decoder := json.NewDecoder(file)
+		configuration := Configuration{}
+		err := decoder.Decode(&configuration)
+
+		if err != nil {
+			fmt.Println("error:", err)
+			log.Fatal()
+		} else {
+			fmt.Println(configuration.Port)
+			port = configuration.Port
+		}
+	}
 
 	router := mux.NewRouter() //.StrictSlash(true)
 	router.HandleFunc("/", Index).Methods("GET")
