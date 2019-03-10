@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"html"
@@ -15,6 +14,7 @@ import (
 	"flag"
 	"context"
 	"os/signal"
+	"github.com/spf13/viper"
 )
 
 // Configuration
@@ -120,33 +120,19 @@ func main() {
 	// Start to read conf file
 	log.Println("\n\n")
 	log.Println("=============================================")
-	log.Println("   Configuration checking - calculator v0.6")
+	log.Println("   Configuration checking - calculator v0.7")
 	log.Println("=============================================")
-	file, err := os.Open("conf.json")
 
-	if err != nil {
-		log.Println("No conf file, using port 9596 by default")
-	} else {
-		defer file.Close()
-		decoder := json.NewDecoder(file)
-		configuration := Configuration{}
-		err := decoder.Decode(&configuration)
-
-		if err != nil {
-			fmt.Println("error:", err)
-			log.Fatal()
-		} else {
-
-			// Check port parameter
-			if len(configuration.Port) == 0 {
-				log.Println("-- No port inf config file, using: ", port)
-			} else {
-				port = configuration.Port
-				log.Println("-- Using port: ", port)
-			}
-
-		}
+	// loading configuration
+	viper.SetConfigName("conf")                                   // name of config file (without ext)
+	viper.AddConfigPath(".")                                      // default path for conf file
+	viper.SetDefault("port", ":9596")                             // default port value
+	err := viper.ReadInConfig()                                   // Find and read the config file
+	if err != nil {                                               // Handle errors reading the config file
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
+
+	log.Println("-- Using port: ", viper.GetString("port"))
 
 	log.Println("=============================================")
 
@@ -159,7 +145,7 @@ func main() {
 	router.HandleFunc("/factorialRecursive/{number}", factorialRecursiveHandler).Methods("GET")
 
 	// set timeout
-	muxWithMiddlewares := http.TimeoutHandler(router, time.Second*3, "Timeout!")
+	//muxWithMiddlewares := http.TimeoutHandler(router, time.Second*3, "Timeout!")
 
 	srv := &http.Server{
 		Addr:    port,
@@ -170,7 +156,7 @@ func main() {
 		ReadTimeout:  time.Second * 15,
 		////:  time.Second * 120,
 		//Handler: router,
-		Handler: muxWithMiddlewares,
+		Handler: router,
 	}
 
 	// Run our server in a goroutine so that it doesn't block.
