@@ -1,0 +1,4 @@
+# string meaning the port to be used by the app as :port  (: is mandatory)
+port: ":9596"
+# string to define log level. Values: "info", "debug", "disabled". Info is default value
+loglevel: "info"
