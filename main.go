@@ -70,7 +70,7 @@ func main() {
 	router.GET("/", rootHandler)
 	router.GET("/hello/:name", echoHandler)
 	router.GET("/factorialIterative/:number", factorialIterativeHandler)
-	router.GET("/factorialRecursive/number", factorialRecursiveHandler)
+	router.GET("/factorialRecursive/:number", factorialRecursiveHandler)
 
 
 	// Use reuse port tool
@@ -83,7 +83,7 @@ func main() {
 	srv := &fasthttp.Server{
 		// https://stackoverflow.com/questions/29334407/creating-an-idle-timeout-in-go
 		//WriteTimeout: 					time.Second * 60,
-		ReadTimeout: time.Second * 5,
+		ReadTimeout: 						time.Second * 20,
 		//IdleTimeout:  					time.Second * 120,
 		SleepWhenConcurrencyLimitsExceeded: time.Second * 5,
 		Handler:                            router.Handler,

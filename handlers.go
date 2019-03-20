@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
 	"math/big"
@@ -43,10 +44,8 @@ func rootHandler(ctx *fasthttp.RequestCtx) {
 // Return echo message
 func echoHandler(ctx *fasthttp.RequestCtx) {
 
-	args := ctx.URI().QueryArgs()
-	msg := args.Peek("message")
-
-	ctx.Response.SetBody([]byte(msg))
+	fmt.Printf("Valor: %s", ctx.UserValue("name"))
+	fmt.Fprintf(ctx, "Hello: %s", ctx.UserValue("name"))
 	// If we arrived here then everything is OK. :)
 	ctx.Response.SetStatusCode(fasthttp.StatusOK)
 
@@ -55,8 +54,9 @@ func echoHandler(ctx *fasthttp.RequestCtx) {
 // Handle iterative path and calls iterative calculation
 func factorialIterativeHandler(ctx *fasthttp.RequestCtx) {
 
-	args := ctx.URI().QueryArgs()
-	number, er := StrToInt(string(args.Peek("number")))
+	log.Debug().Msgf("Received: %s", ctx.UserValue("number"))
+
+	number, er := StrToInt(fmt.Sprintf("%s", ctx.UserValue("number")))
 
 	if er != nil {
 		log.Error().Msg("Error calculating number")
@@ -67,14 +67,16 @@ func factorialIterativeHandler(ctx *fasthttp.RequestCtx) {
 	}
 
 	ctx.Response.SetStatusCode(fasthttp.StatusOK)
-	ctx.Response.SetBody([]byte(factorialIter(number).String()))
+	fmt.Fprintf(ctx, "%s", factorialIter(number))
+
 
 }
 
 // Handle recursive path and calls recursive calculation
 func factorialRecursiveHandler(ctx *fasthttp.RequestCtx) {
-	args := ctx.URI().QueryArgs()
-	mynumbera, er := strconv.ParseInt(args.Peek("number"), 10, 64)
+
+	mynumbera, er := strconv.ParseInt(fmt.Sprintf("%s", ctx.UserValue("number")),
+		10, 64)
 
 	if er != nil {
 		log.Error().Msg("Error calculating number")
@@ -89,7 +91,8 @@ func factorialRecursiveHandler(ctx *fasthttp.RequestCtx) {
 	// Get a pointer
 	numberPointer := &mynumberBig
 
+
 	ctx.Response.SetStatusCode(fasthttp.StatusOK)
-	ctx.Response.SetBody([]byte(factorialRecursive(*numberPointer).String()))
+	fmt.Fprintf(ctx, "%s", factorialRecursive(*numberPointer))
 
 }
