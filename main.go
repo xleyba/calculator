@@ -67,7 +67,7 @@ func main() {
 	// Use fasthttprouter mux
 	router := fasthttprouter.New()
 	router.GET("/", rootHandler)
-	router.GET("/hello/:name", echoHandler)
+	router.GET("/echo/:name", echoHandler)
 	router.GET("/factorialIterative/:number", factorialIterativeHandler)
 	router.GET("/factorialRecursive/:number", factorialRecursiveHandler)
 
