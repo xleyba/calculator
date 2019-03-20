@@ -44,7 +44,7 @@ func rootHandler(ctx *fasthttp.RequestCtx) {
 // Return echo message
 func echoHandler(ctx *fasthttp.RequestCtx) {
 
-	fmt.Printf("Valor: %s", ctx.UserValue("name"))
+	log.Debug().Msgf("Received: %s", ctx.UserValue("name"))
 	fmt.Fprintf(ctx, "Hello: %s", ctx.UserValue("name"))
 	// If we arrived here then everything is OK. :)
 	ctx.Response.SetStatusCode(fasthttp.StatusOK)
