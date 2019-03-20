@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/buaazp/fasthttprouter"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -49,7 +50,7 @@ func start() {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 
-	fmt.Println("-- Log lever set to:    ", viper.GetString("loglevel"))
+	fmt.Println("-- Log level:        ", viper.GetString("loglevel"))
 
 	fmt.Println("=============================================")
 
@@ -64,23 +65,13 @@ func main() {
 	// Memory profiling
 	//defer profile.Start(profile.MemProfile).Stop()
 
-	// Use default router mux
-	m := func(ctx *fasthttp.RequestCtx) {
-		switch string(ctx.Path()) {
-		case "/":
-			rootHandler(ctx)
-		case "/echo/:message":
-			echoHandler(ctx)
-		case "/factorialIterative/:number":
-			factorialIterativeHandler(ctx)
-		case "/factorialRecursive/number":
-			factorialRecursiveHandler(ctx)
-		//case "/customer/account/movements/top":
-		//	yHandler.customerAccountDetailHandler
-		default:
-			ctx.Error("not found", fasthttp.StatusNotFound)
-		}
-	}
+	// Use fasthttprouter mux
+	router := fasthttprouter.New()
+	router.GET("/", rootHandler)
+	router.GET("/hello/:name", echoHandler)
+	router.GET("/factorialIterative/:number", factorialIterativeHandler)
+	router.GET("/factorialRecursive/number", factorialRecursiveHandler)
+
 
 	// Use reuse port tool
 	ln, err := reuseport.Listen("tcp4", viper.GetString("port"))
@@ -95,7 +86,7 @@ func main() {
 		ReadTimeout: time.Second * 5,
 		//IdleTimeout:  					time.Second * 120,
 		SleepWhenConcurrencyLimitsExceeded: time.Second * 5,
-		Handler:                            m,
+		Handler:                            router.Handler,
 	}
 
 	// Lanuch server in a thread
