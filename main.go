@@ -7,7 +7,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"github.com/valyala/fasthttp"
-	"github.com/valyala/fasthttp/reuseport"
 	"os"
 	"os/signal"
 	"time"
@@ -73,12 +72,6 @@ func main() {
 	router.GET("/factorialRecursive/:number", factorialRecursiveHandler)
 
 
-	// Use reuse port tool
-	ln, err := reuseport.Listen("tcp4", viper.GetString("port"))
-	if err != nil {
-		log.Fatal().Msgf("error in reuseport listener: %s", err)
-	}
-
 	// Defining server
 	srv := &fasthttp.Server{
 		// https://stackoverflow.com/questions/29334407/creating-an-idle-timeout-in-go
@@ -93,7 +86,7 @@ func main() {
 	go func() {
 		fmt.Println("Starting server...")
 		log.Info().Msg("Starting server...")
-		if err := srv.Serve(ln); err != nil {
+		if err := srv.ListenAndServe(viper.GetString("port")); err != nil {
 			log.Panic().Msgf("%s", err)
 		}
 	}()
