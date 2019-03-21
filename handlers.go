@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
-	"github.com/valyala/fasthttp"
+	"html"
 	"math/big"
+	"net/http"
 	"strconv"
 	"strings"
 )
@@ -35,54 +37,53 @@ func factorialRecursive(x *big.Int) *big.Int {
 }
 
 // Return default message for root routing
-func rootHandler(ctx *fasthttp.RequestCtx) {
-	ctx.Response.SetBody([]byte("Hello!"))
-	// If we arrived here then everything is OK. :)
-	ctx.Response.SetStatusCode(fasthttp.StatusOK)
+func index(w http.ResponseWriter, r *http.Request) {
+	log.Debug().Msg("Got root")
+	fmt.Fprintf(w, "Hello %q", html.EscapeString(r.URL.Path))
 }
 
 // Return echo message
-func echoHandler(ctx *fasthttp.RequestCtx) {
 
-	log.Debug().Msgf("Received: %s", ctx.UserValue("name"))
-	fmt.Fprintf(ctx, "Hello: %s", ctx.UserValue("name"))
-	// If we arrived here then everything is OK. :)
-	ctx.Response.SetStatusCode(fasthttp.StatusOK)
+func echoHandler(w http.ResponseWriter, r *http.Request) {
+
+	params := mux.Vars(r)
+
+	fmt.Fprintf(w, "Hello: %s", params["message"])
 
 }
 
 // Handle iterative path and calls iterative calculation
-func factorialIterativeHandler(ctx *fasthttp.RequestCtx) {
+func factorialIterativeHandler(w http.ResponseWriter, r *http.Request) {
 
-	log.Debug().Msgf("Received: %s", ctx.UserValue("number"))
+	params := mux.Vars(r)
+	log.Debug().Msgf("Received: %s", params["number"])
 
-	number, er := StrToInt(fmt.Sprintf("%s", ctx.UserValue("number")))
+	number, er := StrToInt(fmt.Sprintf("%s", params["number"]))
 
 	if er != nil {
 		log.Error().Msg("Error calculating number")
-		ctx.Error(er.Error(), fasthttp.StatusInternalServerError)
-		ctx.Response.Header.Set("Status", strconv.Itoa(fasthttp.StatusInternalServerError))
-		ctx.Response.SetBody([]byte("500 - Internal server error processing data"))
+		w.Header().Set("Status", "500")
+		fmt.Fprint(w, "500 - Internal server error processing data")
 		return
 	}
 
-	ctx.Response.SetStatusCode(fasthttp.StatusOK)
-	fmt.Fprintf(ctx, "%s", factorialIter(number))
-
+	fmt.Fprintf(w, "%s", factorialIter(number))
 
 }
 
 // Handle recursive path and calls recursive calculation
-func factorialRecursiveHandler(ctx *fasthttp.RequestCtx) {
+func factorialRecursiveHandler(w http.ResponseWriter, r *http.Request) {
 
-	mynumbera, er := strconv.ParseInt(fmt.Sprintf("%s", ctx.UserValue("number")),
+	params := mux.Vars(r)
+	log.Debug().Msgf("Received: %s", params["number"])
+
+	mynumbera, er := strconv.ParseInt(params["number"],
 		10, 64)
 
 	if er != nil {
-		log.Error().Msg("Error calculating number")
-		ctx.Error(er.Error(), fasthttp.StatusInternalServerError)
-		ctx.Response.Header.Set("Status", strconv.Itoa(fasthttp.StatusInternalServerError))
-		ctx.Response.SetBody([]byte("500 - Internal server error processing data"))
+		log.Error().Msgf("Error calculating number %s", er.Error())
+		w.Header().Set("Status", "500")
+		fmt.Fprint(w, "500 - Internal server error processing data")
 		return
 	}
 
@@ -91,8 +92,6 @@ func factorialRecursiveHandler(ctx *fasthttp.RequestCtx) {
 	// Get a pointer
 	numberPointer := &mynumberBig
 
-
-	ctx.Response.SetStatusCode(fasthttp.StatusOK)
-	fmt.Fprintf(ctx, "%s", factorialRecursive(*numberPointer))
+	fmt.Fprintf(w, "%s", factorialRecursive(*numberPointer))
 
 }

@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"github.com/buaazp/fasthttprouter"
+	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"github.com/valyala/fasthttp"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"time"
@@ -20,7 +23,7 @@ func start() {
 	// Start to read conf file
 	fmt.Print("\n\n")
 	fmt.Println("=============================================")
-	fmt.Println("  Configuration checking - calculator v0.8   ")
+	fmt.Println("  Configuration checking - calculator v1.0   ")
 	fmt.Println("=============================================")
 
 	// loading configuration
@@ -64,29 +67,40 @@ func main() {
 	// Memory profiling
 	//defer profile.Start(profile.MemProfile).Stop()
 
-	// Use fasthttprouter mux
-	router := fasthttprouter.New()
-	router.GET("/", rootHandler)
-	router.GET("/echo/:name", echoHandler)
-	router.GET("/factorialIterative/:number", factorialIterativeHandler)
-	router.GET("/factorialRecursive/:number", factorialRecursiveHandler)
+	r := mux.NewRouter()
+	r.HandleFunc("/", index)
+	r.HandleFunc("/echo/{message}", echoHandler)
+	r.HandleFunc("/factorialIterative/{number}", factorialIterativeHandler)
+	r.HandleFunc("/factorialRecursive/{number}", echoHandlerD(viper.GetString("calledServiceURL"),
+		SetClientD()))
 
+	srv := &http.Server{
+		Addr:           viper.GetString("port"),
+		Handler:        r,
+		ReadTimeout:    2 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+		IdleTimeout:    time.Second * 2,
+	}
 
-	// Defining server
-	srv := &fasthttp.Server{
-		// https://stackoverflow.com/questions/29334407/creating-an-idle-timeout-in-go
-		//WriteTimeout: 					time.Second * 60,
-		ReadTimeout: 						time.Second * 20,
-		//IdleTimeout:  					time.Second * 120,
-		SleepWhenConcurrencyLimitsExceeded: time.Second * 5,
-		Handler:                            router.Handler,
+	srv.ConnState = func(c net.Conn, cs http.ConnState) {
+		switch cs {
+		case http.StateIdle:
+			c.SetReadDeadline(time.Now().Add(time.Second * 2))
+			log.Debug().Msgf("StateIddle: %s", c.LocalAddr().String())
+		case http.StateNew:
+			c.SetReadDeadline(time.Now().Add(time.Second * 2))
+			log.Debug().Msgf("StateNew: %s", c.LocalAddr().String())
+		case http.StateActive:
+			log.Debug().Msgf("Active: %s", c.LocalAddr().String())
+			c.SetReadDeadline(time.Now().Add(time.Second * 2))
+		}
 	}
 
 	// Lanuch server in a thread
 	go func() {
 		fmt.Println("Starting server...")
 		log.Info().Msg("Starting server...")
-		if err := srv.ListenAndServe(viper.GetString("port")); err != nil {
+		if err := srv.ListenAndServe(); err != nil {
 			log.Panic().Msgf("%s", err)
 		}
 	}()
