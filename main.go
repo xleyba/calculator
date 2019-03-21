@@ -1,13 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/buaazp/fasthttprouter"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
-	"github.com/valyala/fasthttp"
 	"net"
 	"net/http"
 	"os"
@@ -71,8 +70,7 @@ func main() {
 	r.HandleFunc("/", index)
 	r.HandleFunc("/echo/{message}", echoHandler)
 	r.HandleFunc("/factorialIterative/{number}", factorialIterativeHandler)
-	r.HandleFunc("/factorialRecursive/{number}", echoHandlerD(viper.GetString("calledServiceURL"),
-		SetClientD()))
+	r.HandleFunc("/factorialRecursive/{number}", factorialRecursiveHandler)
 
 	srv := &http.Server{
 		Addr:           viper.GetString("port"),
@@ -112,7 +110,10 @@ func main() {
 	// Block until we receive our signal.
 	<-c
 
-	errShutdown := srv.Shutdown()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 10)
+	defer cancel()
+
+	errShutdown := srv.Shutdown(ctx)
 	if errShutdown != nil {
 		panic(fmt.Sprintf("Error shutting down %s", errShutdown))
 	}
